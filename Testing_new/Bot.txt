@@ -1,0 +1,121 @@
+import telebot
+from telebot import types
+import sqlite3 as sq
+import datetime
+import re
+
+bot = telebot.TeleBot("5608244416:AAGO9fj5If9Focw1VttM2vIP7yDh7XYSRhs", parse_mode=None)
+
+# create date: 05.03.2023 and time: 12:00
+date_1 = datetime.date(2023, 3, 5)
+time_1 = datetime.time(12,0)
+
+table_name = f"tour_at_{date_1.strftime('%d_%m_%Y')}_{time_1.strftime('%H_%M')}"#.replace('-', '_')
+#SQL doesn`t allow '-', so i have to replace it
+
+@bot.message_handler(commands=['ОМЕТ','start']) # comands that responded
+# @bot.message_handler(content_types=['text','sticker'])
+def respond(message):
+    
+    # open file with database
+    connect = sq.connect('mus_schedule.db')
+    cursor = connect.cursor()
+    
+    cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+            name STRING,
+            quantity INTEGER,
+            contact INTEGER VARCHAR (13) UNIQUE
+            );   """)
+    connect.commit()
+    
+    text_menu=f"<b>{message.from_user.first_name}</b>.,виберіть та натисніть одну з кнопок нижче\n\
+           1.Зареєструватись на найближчу екскурсію.\n\
+           2.Відвідати наш сайт.\n\
+           3.Залишити відгук відносно роботи електротранспорту."
+    markup=types.InlineKeyboardMarkup(row_width=1) 
+    button_1=types.InlineKeyboardButton(f"1.Зареєструватись на екскурсія\
+      {date_1.strftime ('%d-%m-%Y')} о {time_1}",callback_data='schedule')
+    button_2=types.InlineKeyboardButton("2.Відвідати офіційну сторінку КП 'OMET'",\
+      url="https://oget.od.ua",callback_data='site')
+    button_3=types.InlineKeyboardButton("3.Залишити відгук відносно роботи електротранспорту.",\
+      callback_data='respond')
+    markup.add(button_1,button_2,button_3)
+    
+    bot.send_message(message.chat.id,text_menu,reply_markup=markup,parse_mode='html')
+
+@bot.callback_query_handler(func=lambda call:True)
+def callback(call):
+    if call.message: # check if button pushed
+        if call.data == 'schedule':
+            bot.send_message(call.message.chat.id, "Напишіть будь ласка цифрами (від 1 до 50) кількість людей,\
+                які планують відвідати музей КП 'ОМЕТ'\n\
+                (наприклад:'12' - бот ідентифікує лише цифрову складову у цьому повідомленні)")
+    bot.register_next_step_handler(call.message, save_quantity)
+
+def save_quantity(message):
+  quantity = message.text.strip()  # remove extra spaces from text 
+  name = message.from_user.first_name
+  
+  # check if quantity is real number
+  if not quantity.isdigit():
+    bot.send_message(message.chat.id, "Невірно введена кількість")
+    bot.register_next_step_handler(message, save_quantity)  # чекаємо наступне повідомлення
+    return
+  
+  # check if quantity more than 50
+  if int(quantity) > 50:
+    bot.send_message(message.chat.id, "Зв'яжіться із директором музею за телефоном 050 399 42 11 для обговорення окремої\
+      екскурсії для такої великої кількості людей")
+    return
+  
+  # separate the numerical part from the text, if there is one
+  digits_str = ''.join(re.findall('\d+', quantity))
+  digits_int = int(digits_str) if digits_str else None
+  
+  # open file with database
+  connect = sq.connect('mus_schedule.db')
+  cursor = connect.cursor()
+    
+  cursor.execute(f"Insert Or Replace Into {table_name} (name, quantity) VALUES (?, ?)", (name, digits_int))
+  connect.commit()
+    
+  cursor.close()
+  connect.close()
+
+  bot.send_message(message.chat.id, f"Кількість відвідувачів {digits_int} збережено")
+  
+  bot.send_message(message.chat.id, "Надішліть будь ласка ваш номер телефону для зв'язку з вами:")
+  
+  bot.register_next_step_handler(message, ask_phone, name)
+                   
+def ask_phone(message, name):  # запитати номер телефону
+  phone_number = message.text.strip()  # remove extra spaces from text
+  int_phone = int(''.join(re.findall('\d+', phone_number)))
+  
+  # check if phone number is valid
+  if not phone_number.isdigit() or not 6 <= len(phone_number) <= 13:
+    bot.send_message(message.chat.id, "В номері незрозуміла кількість цифр або він містить недопустимі символи")
+    bot.register_next_step_handler(message, ask_phone)  # чекаємо наступне повідомлення
+    return
+  
+  # open file with database
+  connect = sq.connect('mus_schedule.db')
+  cursor = connect.cursor()
+    
+  cursor.execute(f"Update {table_name} Set contact = ? Where name = ?;", (int_phone, name))
+  connect.commit()
+    
+  cursor.close()
+  connect.close()
+
+  bot.send_message(message.chat.id, f"Ваш контакт збережено. Будемо раді бачити вас у музеї, гарного дня!\
+    Якщо хочете повернутись в головне меню напишіть команду '\start' або '\omet'")
+
+
+
+@bot.message_handler(func=lambda message: True) # repeat user`s messages
+def echo_all(message):
+	bot.reply_to(message, message.text)
+
+bot.infinity_polling()
