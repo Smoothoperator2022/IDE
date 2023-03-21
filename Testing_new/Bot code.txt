@@ -4,7 +4,8 @@ import sqlite3 as sq
 import datetime
 import re
 
-bot = telebot.TeleBot("5608244416:AAGO9fj5If9Focw1VttM2vIP7yDh7XYSRhs", parse_mode=None)
+bot = telebot.TeleBot("....", parse_mode=None)
+TOKEN = "5608244416:AAGO9fj5If9Focw1VttM2vIP7yDh7XYSRhs"
 
 # create date: 05.03.2023 and time: 12:00
 date_1 = datetime.date(2023, 3, 5)
