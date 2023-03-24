@@ -3,9 +3,9 @@ https://t.me/organizer_test_bot
 https://telegra.ph/Picture-for-bot-03-16
 
 INSERT INTO tour_at_05_03_2023_12_00 (name, quantity, contact) VALUES ('Garik', 12, '501238469')
-SELECT SUM(quantity) FROM tour_at_05_03_2023_12_00;
-DELETE FROM tour_at_05_03_2023_12_00 WHERE name = 'Stanislav';
-SELECT COUNT(*) FROM {table_name} WHERE contact=?;
+SELECT SUM(quantity) FROM tour_at_05_03_2023_12_00
+DELETE FROM tour_at_05_03_2023_12_00 WHERE name = 'Stanislav'
+SELECT COUNT(*) FROM {table_name} WHERE contact=?
 
 photo_url = 'https://scontent-ams2-1.xx.fbcdn.net/v/t1.6435-9/193684250_1184653448716244_1549048136683557681_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=8bfeb9&_nc_ohc=7yIjZg512oIAX-92GYU&_nc_ht=scontent-ams2-1.xx&oh=00_AfAudupE6CtYIyfwv4wymPOXc7HrylZBNvlL-KIs7B_Q3Q&oe=643A8642'
 
